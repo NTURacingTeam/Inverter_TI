@@ -1,0 +1,80 @@
+#include "can_inv.h"
+
+void InvInitCan(uint16_t _inverterX)
+{
+    // CAN 初始化代码
+    CANInit(CANA_BASE);
+    CANBitRateSet(CANA_BASE, 200000000, 500000); // 设置 CAN 速率为 500 kbps
+    CANEnable(CANA_BASE);
+
+    // 配置 CAN 消息对象
+    tCANMsgObject sCANMessage;
+    sCANMessage.ui32MsgID = _inverterX;
+    sCANMessage.ui32MsgIDMask = 0;
+    sCANMessage.ui32Flags = MSG_OBJ_TX_INT_ENABLE | MSG_OBJ_RX_INT_ENABLE;
+    sCANMessage.ui32MsgLen = sizeof(uint16_t);
+    sCANMessage.pucMsgData = 0;
+    CANMessageSet(CANA_BASE, 1, &sCANMessage, MSG_OBJ_TYPE_TX);
+}
+
+void ReceiveCanControl()
+{
+    // CAN 控制信号接收和处理代码
+    tCANMsgObject sCANMessage;
+    uint16_t pui16MsgData;
+    sCANMessage.pucMsgData = (uint8_t *)&pui16MsgData;
+    CANMessageGet(CANA_BASE, 1, &sCANMessage, true);
+    // 根据接收到的控制信号执行相应操作
+}
+
+void SendCanStatus(uint16_t status, float32 torque)
+{
+    // 发送状态消息
+    tCANMsgObject sCANMessage;
+    uint8_t pui8MsgData[6];
+    pui8MsgData[0] = (status >> 8) & 0xFF;
+    pui8MsgData[1] = status & 0xFF;
+    memcpy(&pui8MsgData[2], &torque, sizeof(torque));
+    sCANMessage.pucMsgData = pui8MsgData;
+    sCANMessage.ui32MsgLen = sizeof(pui8MsgData);
+    CANMessageSet(CANA_BASE, 2, &sCANMessage, MSG_OBJ_TYPE_TX);
+}
+
+void SendCanTemperature(int16_t rpm, float32 torque_fb, float32 voltage, float32 current)
+{
+    // 发送温度消息
+    tCANMsgObject sCANMessage;
+    uint8_t pui8MsgData[10];
+    pui8MsgData[0] = (rpm >> 8) & 0xFF;
+    pui8MsgData[1] = rpm & 0xFF;
+    memcpy(&pui8MsgData[2], &torque_fb, sizeof(torque_fb));
+    memcpy(&pui8MsgData[6], &voltage, sizeof(voltage));
+    memcpy(&pui8MsgData[10], &current, sizeof(current));
+    sCANMessage.pucMsgData = pui8MsgData;
+    sCANMessage.ui32MsgLen = sizeof(pui8MsgData);
+    CANMessageSet(CANA_BASE, 3, &sCANMessage, MSG_OBJ_TYPE_TX);
+}
+
+void SendCanState(uint16_t invTemp, uint16_t motorTemp)
+{
+    // 发送状态消息
+    tCANMsgObject sCANMessage;
+    uint8_t pui8MsgData[4];
+    pui8MsgData[0] = (invTemp >> 8) & 0xFF;
+    pui8MsgData[1] = invTemp & 0xFF;
+    pui8MsgData[2] = (motorTemp >> 8) & 0xFF;
+    pui8MsgData[3] = motorTemp & 0xFF;
+    sCANMessage.pucMsgData = pui8MsgData;
+    sCANMessage.ui32MsgLen = sizeof(pui8MsgData);
+    CANMessageSet(CANA_BASE, 4, &sCANMessage, MSG_OBJ_TYPE_TX);
+}
+
+void SendCanHeartbeat()
+{
+    // 发送心跳消息
+    tCANMsgObject sCANMessage;
+    uint8_t pui8MsgData[1] = {0xAA}; // 心跳信号
+    sCANMessage.pucMsgData = pui8MsgData;
+    sCANMessage.ui32MsgLen = sizeof(pui8MsgData);
+    CANMessageSet(CANA_BASE, 5, &sCANMessage, MSG_OBJ_TYPE_TX);
+}
