@@ -327,13 +327,15 @@ inline void motorTempSense()
 {
     /*
     Power module temperature measured by NTC thermistor.
-    The NTC was placed at the lower part of a voltage divider with Vcc=5V, and a upper resistor of 1k ohm
+    The NTC was placed at the lower part of a voltage divider with Vcc=3.3V, and a upper resistor of 5k ohm
     Characteristics of NTC are, R25 = 5k ohm, B25/50 = 3375, B25/80 = 3441, B25/100 = 3433
-    Here we use a approximated model of degC = 3884.9*e^(-0.0779*R) + 25
+    Here we use a approximated model of degC = -32.332*ln(R) + 298.94
     */
-    motor1.TempA = 3844.9*pow(2.718, (-77.9/(6204.5/TFB_A - 1))) + 25;
+    GPIO_WritePin(MOTOR1_Gate_GPIO, TRUE);
+    cycleTicks = CpuTimer0Regs.TIM.all;
+    motor1.TempA = (float)TFB_A*Temp_ADC_PU_SCALE_FACTOR;
     motor1.TempB = (float)TFB_B*Temp_ADC_PU_SCALE_FACTOR;
-    motor1.TempC = (float)TFB_C*Temp_ADC_PU_SCALE_FACTOR;
+//    motor1.TempC = -32.332*log(5000.0*(4095.0/TFB_C - 1)) + 298.94;
 
     /*
     Motor temperature measured by TMC PT1000 thermistor.
@@ -344,8 +346,9 @@ inline void motorTempSense()
     !! Somehow the Vrefhi(3.30V) for adc is different from the Vcc(3.34) of voltage divider,
     so it's corrected by adjust the max value of adc reading, 4095*3.34/3.3 = 4144.6
     */
-    motor1.TempMotor = 263.7/(4144.6/(float)TFB_motor - 1) - 264.76;
-
+//    motor1.TempMotor = 263.7/(4144.6/(float)TFB_motor - 1) - 264.76;
+    cycleTicks -= CpuTimer0Regs.TIM.all;
+    GPIO_WritePin(MOTOR1_Gate_GPIO, FALSE);
     return;
 }
 
@@ -649,7 +652,7 @@ void main(void){
     // cos+ ADC_B B2 SOC3
     // cos- ADC_B B3 SOC4
 
-    // TODO calculate the suitable ACQPS time for each ADC measurement
+    // TODO calculate the suitable ACQPS time for each ADC measurement (current value seems to be pretty low)
 
     // define ADC for voltage measurement
     // Motor 1: Vdc  @ A0
@@ -733,7 +736,7 @@ void main(void){
     // Motor 1: Temp w @ 14
     // ********************************
     AdcaRegs.ADCSOC9CTL.bit.CHSEL = 14;                    // SOC8 will convert pin 14
-    AdcaRegs.ADCSOC9CTL.bit.ACQPS = 30;                   // sample window in SYSCLK cycles
+    AdcaRegs.ADCSOC9CTL.bit.ACQPS = 59;                   // sample window in SYSCLK cycles
     AdcaRegs.ADCSOC9CTL.bit.TRIGSEL = ADCTRIG5_EPWM1SOCA; // trigger on ePWM1 SOCA
 
     //encoder : sin+ @ B0
@@ -852,8 +855,8 @@ void main(void){
 
 
     // Init PI module for ID loop
-    motor1.pi_id.Kp = _IQ(1.5*25/BASE_VOLTAGE);
-    motor1.pi_id.Ki = _IQ(0.0005*25/BASE_VOLTAGE); //20k
+    motor1.pi_id.Kp = _IQ(1.5*25/BASE_VOLTAGE); // resistance * bandwidth / dc voltage  //note the unit
+    motor1.pi_id.Ki = _IQ(0.0005*25/BASE_VOLTAGE); //20k //inductance * bandwidth / dc voltage
     motor1.pi_id.Umax = _IQ(0.9);
     motor1.pi_id.Umin = _IQ(-0.9);
 
@@ -1181,7 +1184,7 @@ void C3(void) //  SPARE
 // ****************************************************************************
 inline void PM_FOC_main(MOTOR_VARS *motor)
 {
-    cycleTicks = CpuTimer0Regs.TIM.all;
+
     // ------------------------------------------------------------------------------
     // Alignment Routine: this routine aligns the motor to zero electrical angle
     // and in case of QEP also finds the index location and initializes the angle
@@ -1406,7 +1409,6 @@ inline void PM_FOC_main(MOTOR_VARS *motor)
     PwmDacCh3 = _IQtoQ15(motor1.ElecTheta); //start at 1.7v max at 3.3v //motor->clarke.As                // Launchpad pin DAC3
     PwmDacCh2 = _IQtoQ15(0.0); //start at 1.7v max at 3.3v //_IQtoQ15(motor->clarke.As);         // Launchpad pin DAC4 -8 ~ 8
 //    PwmDacCh1 = _IQtoQ15(1.0);
-    cycleTicks -= CpuTimer0Regs.TIM.all;
 
     return;
 }
@@ -1510,9 +1512,8 @@ interrupt void MotorControlISR(void)
 
     // ------------------------------------------------------------------------------
     //    FOC Main functions
-    GPIO_WritePin(MOTOR1_Gate_GPIO, TRUE);
+
     PM_FOC_main(&motor1);
-    GPIO_WritePin(MOTOR1_Gate_GPIO, FALSE);
     // ------------------------------------------------------------------------------
     //    Call the DATALOG update function.
     // ------------------------------------------------------------------------------
