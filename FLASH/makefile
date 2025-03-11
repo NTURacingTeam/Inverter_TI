@@ -154,7 +154,7 @@ all: $(OBJS) $(CMD_SRCS) $(GEN_CMDS)
 NMS1_20240826-13L.out: $(OBJS) $(CMD_SRCS) $(GEN_CMDS)
 	@echo 'Building target: "$@"'
 	@echo 'Invoking: C2000 Linker'
-	"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/bin/cl2000" -v28 -ml -mt --cla_support=cla1 --float_support=fpu32 --tmu_support=tmu0 --vcu_support=vcu2 -O0 --fp_mode=relaxed --advice:performance=all --define=_INLINE --define=_FLASH --diag_warning=225 --diag_wrap=off --display_error_number --abi=coffabi -z -m"NMS1_20240826-13L.map" --stack_size=0x200 --warn_sections -i"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/lib" -i"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include" --reread_libs --diag_wrap=off --display_error_number --xml_link_info="NMS1_20240826-13L_linkInfo.xml" --rom_model -o "NMS1_20240826-13L.out" $(ORDERED_OBJS)
+	"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/bin/cl2000" -v28 -ml -mt --cla_support=cla1 --float_support=fpu32 --tmu_support=tmu0 --vcu_support=vcu2 -O2 --fp_mode=relaxed --advice:performance=all --define=_INLINE --define=_FLASH --diag_warning=225 --diag_wrap=off --display_error_number --abi=coffabi -z -m"NMS1_20240826-13L.map" --stack_size=0x200 --warn_sections -i"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/lib" -i"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include" --reread_libs --diag_wrap=off --display_error_number --xml_link_info="NMS1_20240826-13L_linkInfo.xml" --rom_model -o "NMS1_20240826-13L.out" $(ORDERED_OBJS)
 	@echo 'Finished building target: "$@"'
 	@echo ' '
 

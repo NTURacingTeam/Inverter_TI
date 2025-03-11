@@ -119,6 +119,17 @@ SECTIONS
    
    .reset              : > RESET,     PAGE = 0, TYPE = DSECT /* not used, */
    
+   ramgs0           : > RAMGS0,    PAGE = 1
+   ramgs1           : > RAMGS1,    PAGE = 1
+   ramgs2           : > RAMGS2,    PAGE = 1
+   ramgs3           : > RAMGS3,    PAGE = 1
+   ramgs4           : > RAMGS4,    PAGE = 1
+   ramgs5           : > RAMGS5,    PAGE = 1
+   ramgs6           : > RAMGS6,    PAGE = 1
+   ramgs7           : > RAMGS7,    PAGE = 1
+   ramgs8           : > RAMGS8,    PAGE = 1
+   ramgs9           : > RAMGS9,    PAGE = 1
+
    /* crc/checksum section configured as COPY section to avoid including in executable */
    .TI.memcrc          : type = COPY
 

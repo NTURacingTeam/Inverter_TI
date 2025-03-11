@@ -139,18 +139,13 @@
 								<option id="com.ti.ccstudio.buildDefinitions.C2000_22.6.compilerID.CLA_SUPPORT.1612097435" name="Specify CLA support (--cla_support)" superClass="com.ti.ccstudio.buildDefinitions.C2000_22.6.compilerID.CLA_SUPPORT" value="com.ti.ccstudio.buildDefinitions.C2000_22.6.compilerID.CLA_SUPPORT.cla1" valueType="enumerated"/>
 								<option id="com.ti.ccstudio.buildDefinitions.C2000_22.6.compilerID.VCU_SUPPORT.331211701" name="Specify VCU support (--vcu_support)" superClass="com.ti.ccstudio.buildDefinitions.C2000_22.6.compilerID.VCU_SUPPORT" value="com.ti.ccstudio.buildDefinitions.C2000_22.6.compilerID.VCU_SUPPORT.vcu2" valueType="enumerated"/>
 								<option id="com.ti.ccstudio.buildDefinitions.C2000_22.6.compilerID.TMU_SUPPORT.1901452270" name="Specify TMU support (--tmu_support)" superClass="com.ti.ccstudio.buildDefinitions.C2000_22.6.compilerID.TMU_SUPPORT" value="com.ti.ccstudio.buildDefinitions.C2000_22.6.compilerID.TMU_SUPPORT.tmu0" valueType="enumerated"/>
-								<option id="com.ti.ccstudio.buildDefinitions.C2000_22.6.compilerID.OPT_LEVEL.release.1743151325" name="Optimization level (--opt_level, -O)" superClass="com.ti.ccstudio.buildDefinitions.C2000_22.6.compilerID.OPT_LEVEL.release" value="com.ti.ccstudio.buildDefinitions.C2000_22.6.compilerID.OPT_LEVEL.0" valueType="enumerated"/>
+								<option id="com.ti.ccstudio.buildDefinitions.C2000_22.6.compilerID.OPT_LEVEL.release.1743151325" name="Optimization level (--opt_level, -O)" superClass="com.ti.ccstudio.buildDefinitions.C2000_22.6.compilerID.OPT_LEVEL.release" useByScannerDiscovery="false" value="com.ti.ccstudio.buildDefinitions.C2000_22.6.compilerID.OPT_LEVEL.2" valueType="enumerated"/>
 								<option id="com.ti.ccstudio.buildDefinitions.C2000_22.6.compilerID.FP_MODE.744031074" name="Floating Point mode (--fp_mode)" superClass="com.ti.ccstudio.buildDefinitions.C2000_22.6.compilerID.FP_MODE" value="com.ti.ccstudio.buildDefinitions.C2000_22.6.compilerID.FP_MODE.relaxed" valueType="enumerated"/>
 								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="com.ti.ccstudio.buildDefinitions.C2000_22.6.compilerID.INCLUDE_PATH.1654637929" name="Add dir to #include search path (--include_path, -I)" superClass="com.ti.ccstudio.buildDefinitions.C2000_22.6.compilerID.INCLUDE_PATH" valueType="includePath">
 									<listOptionValue builtIn="false" value="${PROJECT_ROOT}"/>
 									<listOptionValue builtIn="false" value="${workspace_loc:/${ProjName}/Lib/F2837xS_common}"/>
 									<listOptionValue builtIn="false" value="${workspace_loc:/${ProjName}/Lib/F2837xS_common/driverlib}"/>
-									<listOptionValue builtIn="false" value="/Applications/ti/controlSUITE/device_support/F2837xS/v210/F2837xS_common/driverlib"/>
-									<listOptionValue builtIn="false" value="/Applications/ti/controlSUITE/device_support/F2837xS/v210/F2837xS_common/include"/>
-									<listOptionValue builtIn="false" value="/Applications/ti/controlSUITE/device_support/F2837xS/v210/F2837xS_headers/include"/>
-									<listOptionValue builtIn="false" value="/Applications/ti/controlSUITE/libs/app_libs/motor_control/math_blocks/v4.3"/>
 									<listOptionValue builtIn="false" value="C:\ti\controlSUITE\libs\math\IQmath\v160\include"/>
-									<listOptionValue builtIn="false" value="/Applications/ti/controlSUITE/libs/math/IQmath/v160/include"/>
 									<listOptionValue builtIn="false" value="C:\ti\controlSUITE\libs\app_libs\motor_control\math_blocks\v4.3"/>
 									<listOptionValue builtIn="false" value="C:\ti\controlSUITE\device_support\F2837xS\v210\F2837xS_common\include"/>
 									<listOptionValue builtIn="false" value="C:\ti\controlSUITE\device_support\F2837xS\v210\F2837xS_headers\include"/>
@@ -196,7 +191,7 @@
 									<listOptionValue builtIn="false" value="C:\ti\c2000\C2000Ware_5_04_00_00\.metadata\sdk.json"/>
 								</option>
 								<option id="com.ti.ccstudio.buildDefinitions.sysConfig.DEVICE.553907608" name="Name of the device as defined in the core SOC data (-d, --device)" superClass="com.ti.ccstudio.buildDefinitions.sysConfig.DEVICE" value="F2837xS" valueType="string"/>
-								<option id="com.ti.ccstudio.buildDefinitions.sysConfig.PACKAGE.1779812669" superClass="com.ti.ccstudio.buildDefinitions.sysConfig.PACKAGE" value="167PTP" valueType="string"/>
+								<option id="com.ti.ccstudio.buildDefinitions.sysConfig.PACKAGE.1779812669" name="Name of the package as defined in the core SOC data (-p, --package)" superClass="com.ti.ccstudio.buildDefinitions.sysConfig.PACKAGE" value="167PTP" valueType="string"/>
 							</tool>
 						</toolChain>
 					</folderInfo>
@@ -214,4 +209,6 @@
 	</storageModule>
 	<storageModule moduleId="scannerConfiguration"/>
 	<storageModule moduleId="org.eclipse.cdt.make.core.buildtargets"/>
+	<storageModule moduleId="null.devicePreference"/>
+	<storageModule moduleId="cpuFamily"/>
 </cproject>

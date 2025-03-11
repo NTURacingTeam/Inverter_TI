@@ -67,13 +67,23 @@ Peripheral Assignments:
 // ---------------------
 #ifdef _FLASH
 #pragma CODE_SECTION(MotorControlISR, "ramfuncs");
+#pragma CODE_SECTION(LogISR, "ramfuncs");
 #endif
+
+#pragma DATA_SECTION(HFCurrentALog, "ramgs0");
+#pragma DATA_SECTION(HFCurrentBLog, "ramgs1");
+#pragma DATA_SECTION(HFCurrentCLog, "ramgs2");
+#pragma DATA_SECTION(HFCurrentDCLog, "ramgs3");
+#pragma DATA_SECTION(HFSinPLog, "ramgs4");
+#pragma DATA_SECTION(HFSinNLog, "ramgs5");
+#pragma DATA_SECTION(HFCosPLog, "ramgs6");
+#pragma DATA_SECTION(HFCosNLog, "ramgs7");
 
 #pragma INTERRUPT(MotorControlISR, HPI)
 
 // Prototype statements for functions found within this file.
 interrupt void MotorControlISR(void);
-
+interrupt void LogISR(void);
 // Core Motor Control Functions
 // ------------------------------
 
@@ -161,67 +171,11 @@ __interrupt void canaISR(void);     // Receive interrupt for CAN-A (not used)
 _iq boost_gain = 1; // not used
 Uint16 boost_mode = 0; // not used
 
-//_iq     Hybrid_boost_calc = 0;
-//_iq test = 0;
-//_iq Iqreset = 0;
-
-// Hall//
-//_iq Vd = _IQ(0);
-//_iq Vq = _IQ(0);
-//
-//_iq Id = _IQ(0);
-//_iq Iq = _IQ(0);
-
-//_iq emf_d = _IQ(0);
-//_iq emf_q = _IQ(0);
-
-//_iq speed_hat_old = _IQ(0);
-//_iq speed_hat = _IQ(0);
-//_iq speed_hat_lpf = _IQ(0);
-//
-//_iq EMF_theta_hat = 0;
-//_iq EMF_theta_err = _IQ(0);
-//_iq EMF_speed_hat = _IQ(0);
-//_iq EMF_speed_hat_lpf = _IQ(0);
-//_iq EMF_speed_hat_old = _IQ(0);
-//Uint16 currState = 0;
-//Uint16 prevState = 0;
-//Uint16 VirtualTimer = 0;
-//Uint16 FaultEmulationSignal = 0;
-
-//FILTER EMF_filter = FILTER_DEFAULTS;
-//FILTER Hall_filter = FILTER_DEFAULTS;
-
 Uint32 cycleTicks = 0;
 
 // Instance PID regulators to regulate the d and q  axis currents, and speed
 //PID_CONTROLLER pid1_Hall_pll = {PID_TERM_DEFAULTS, PID_PARAM_DEFAULTS, PID_DATA_DEFAULTS};
 PID_CONTROLLER pid1_speed = {PID_TERM_DEFAULTS, PID_PARAM_DEFAULTS, PID_DATA_DEFAULTS};
-
-// for hall sensor speed calculation
-//int Hall_Sector = 1;
-//int Hall_Sector_last = 1;
-//_iq sector1_time = _IQ(0.0);
-//_iq sector2_time = _IQ(0.0);
-//_iq sector3_time = _IQ(0.0);
-//_iq sector4_time = _IQ(0.0);
-//_iq sector5_time = _IQ(0.0);
-//_iq sector6_time = _IQ(0.0);
-//int overflow_flag1 = 0;
-//int overflow_flag2 = 0;
-//int overflow_flag3 = 0;
-//int overflow_flag4 = 0;
-//int overflow_flag5 = 0;
-//int overflow_flag6 = 0;
-//_iq speedRef = _IQ(0.0);
-//_iq speedRef_ramp = _IQ(0.0);
-//_iq Mech_Speed = _IQ(0.0);
-//_iq Mech_Speed_out = _IQ(0.0);
-//int DIR = 0;
-//int DIR_last = 0;
-
-
-
 
 // ****************************************************************************
 // Variables for CPU control
@@ -278,14 +232,17 @@ Uint16 DRV_RESET = 0;
 // ****************************************************************************
 // Variables for Datalog module
 // ****************************************************************************
-float DBUFF_4CH1[200],
-    DBUFF_4CH2[200],
-    DBUFF_4CH3[200],
-    DBUFF_4CH4[200],
-    DlogCh1,
-    DlogCh2,
-    DlogCh3,
-    DlogCh4;
+uint16_t HFCurrentALog[3000],
+    HFCurrentBLog[3000],
+    HFCurrentCLog[3000],
+    HFCurrentDCLog[3000],
+    HFVoltageDCLog[3000],
+    HFSinPLog[3000],
+    HFSinNLog[3000],
+    HFCosPLog[3000],
+    HFCosNLog[3000];
+
+uint16_t LogPos = 0;
 
 // Create an instance of DATALOG Module
 //DLOG_4CH_F dlog_4ch1;
@@ -331,7 +288,6 @@ inline void motorTempSense()
     Characteristics of NTC are, R25 = 5k ohm, B25/50 = 3375, B25/80 = 3441, B25/100 = 3433
     Here we use a approximated model of degC = -32.332*ln(R) + 298.94
     */
-    GPIO_WritePin(MOTOR1_Gate_GPIO, TRUE);
     cycleTicks = CpuTimer0Regs.TIM.all;
     motor1.TempA = (float)TFB_A*Temp_ADC_PU_SCALE_FACTOR;
     motor1.TempB = (float)TFB_B*Temp_ADC_PU_SCALE_FACTOR;
@@ -348,7 +304,6 @@ inline void motorTempSense()
     */
 //    motor1.TempMotor = 263.7/(4144.6/(float)TFB_motor - 1) - 264.76;
     cycleTicks -= CpuTimer0Regs.TIM.all;
-    GPIO_WritePin(MOTOR1_Gate_GPIO, FALSE);
     return;
 }
 
@@ -553,8 +508,10 @@ void main(void){
     // Timing sync for background loops
     // Timer period definitions found in device specific PeripheralHeaderIncludes.h
     CpuTimer0Regs.PRD.all = 10000; // A tasks
-    CpuTimer1Regs.PRD.all = 20000; // B tasks
+    CpuTimer1Regs.PRD.all = 200000; // B tasks
     CpuTimer2Regs.PRD.all = 30000; // C tasks
+
+    CpuTimer1Regs.TCR.bit.TIE = 0x1; // enable timer 1 interrupt
 
     // Tasks State-machine init
     Alpha_State_Ptr = &A0;
@@ -773,9 +730,11 @@ void main(void){
     AdcaRegs.ADCINTSEL1N2.bit.INT1E = 1;
 
     PieVectTable.ADCA1_INT = &MotorControlISR;
+    PieVectTable.TIMER1_INT = &LogISR;
     PieCtrlRegs.PIEIER1.bit.INTx1 = 1; // Enable ADCA1INT in PIE group 1
 
     IER |= M_INT1; // Enable group 1 interrupts
+    IER |= M_INT13;
 
     // SETUP DAC-C (DACs A, B and C are already used up)
 
@@ -1411,6 +1370,25 @@ inline void PM_FOC_main(MOTOR_VARS *motor)
 //    PwmDacCh1 = _IQtoQ15(1.0);
 
     return;
+}
+
+interrupt void LogISR(void){
+    GPIO_WritePin(MOTOR1_Gate_GPIO, TRUE);
+    HFCurrentALog[LogPos] = IFB_A1_PPB; // U phase current
+    HFCurrentBLog[LogPos] = IFB_B1_PPB;
+    HFCurrentCLog[LogPos] = IFB_C1_PPB;
+    HFCurrentDCLog[LogPos] = IFB_DC_PPB;
+    HFSinPLog[LogPos] = AdcbResultRegs.ADCRESULT1; // sin+
+    HFSinNLog[LogPos] = AdcbResultRegs.ADCRESULT2;
+    HFCosPLog[LogPos] = AdcbResultRegs.ADCRESULT3;
+    HFCosNLog[LogPos] = AdcbResultRegs.ADCRESULT4;
+    if(LogPos > 999){
+        LogPos = 0;
+    }
+    else{
+        LogPos ++;
+    }
+    GPIO_WritePin(MOTOR1_Gate_GPIO, FALSE);
 }
 
 

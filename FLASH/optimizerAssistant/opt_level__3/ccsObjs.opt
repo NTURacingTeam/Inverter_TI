@@ -1,4 +1,3 @@
-"./DRV830x_SPI.obj"
 "./F2837xS_Adc.obj"
 "./F2837xS_CodeStartBranch.obj"
 "./F2837xS_Dac_setting.obj"
@@ -13,8 +12,6 @@
 "./MonoMtrServo.obj"
 "./can_inv.obj"
 "./config.obj"
-"./drv8301.obj"
-"./drv8305.obj"
 "./inverter_state.obj"
 "./Lib/F2837xS_common/driverlib/can.obj"
 "./Lib/F2837xS_common/driverlib/interrupt.obj"

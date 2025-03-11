@@ -2,13 +2,14 @@
 # Automatically-generated file. Do not edit!
 ################################################################################
 
-CG_TOOL_ROOT := /Applications/ti/ccs1260/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS
+SHELL = cmd.exe
+
+CG_TOOL_ROOT := C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS
 
 GEN_OPTS__FLAG := 
 GEN_CMDS__FLAG := 
 
 ORDERED_OBJS += \
-"./DRV830x_SPI.obj" \
 "./F2837xS_Adc.obj" \
 "./F2837xS_CodeStartBranch.obj" \
 "./F2837xS_Dac_setting.obj" \
@@ -23,8 +24,6 @@ ORDERED_OBJS += \
 "./MonoMtrServo.obj" \
 "./can_inv.obj" \
 "./config.obj" \
-"./drv8301.obj" \
-"./drv8305.obj" \
 "./inverter_state.obj" \
 "./Lib/F2837xS_common/driverlib/can.obj" \
 "./Lib/F2837xS_common/driverlib/interrupt.obj" \
@@ -36,8 +35,8 @@ $(GEN_CMDS__FLAG) \
 
 -include ../makefile.init
 
-RM := rm -rf
-RMDIR := rm -rf
+RM := DEL /F
+RMDIR := RMDIR /S/Q
 
 # All of the sources participating in the build are defined here
 -include sources.mk
@@ -141,29 +140,29 @@ endif
 
 # Add inputs and outputs from these tool invocations to the build variables 
 EXE_OUTPUTS += \
-NMS1_20240825bak.out 
+NMS1_20240826-13L.out 
 
 EXE_OUTPUTS__QUOTED += \
-"NMS1_20240825bak.out" 
+"NMS1_20240826-13L.out" 
 
 
 # All Target
 all: $(OBJS) $(CMD_SRCS) $(GEN_CMDS)
-	@$(MAKE) --no-print-directory -Onone "NMS1_20240825bak.out"
+	@$(MAKE) --no-print-directory -Onone "NMS1_20240826-13L.out"
 
 # Tool invocations
-NMS1_20240825bak.out: $(OBJS) $(CMD_SRCS) $(GEN_CMDS)
+NMS1_20240826-13L.out: $(OBJS) $(CMD_SRCS) $(GEN_CMDS)
 	@echo 'Building target: "$@"'
 	@echo 'Invoking: C2000 Linker'
-	"/Applications/ti/ccs1260/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/bin/cl2000" -v28 -ml -mt --cla_support=cla1 --float_support=fpu32 --tmu_support=tmu0 --vcu_support=vcu2 -O3 --diag_warning=225 --diag_wrap=off --display_error_number --abi=coffabi -z -m"NMS1_20240825bak.map" --stack_size=0x200 --warn_sections -i"/Applications/ti/ccs1260/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/lib" -i"/Applications/ti/ccs1260/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include" --reread_libs --diag_wrap=off --display_error_number --xml_link_info="NMS1_20240825bak_linkInfo.xml" --rom_model -o "NMS1_20240825bak.out" $(ORDERED_OBJS)
+	"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/bin/cl2000" -v28 -ml -mt --cla_support=cla1 --float_support=fpu32 --tmu_support=tmu0 --vcu_support=vcu2 -O3 --fp_mode=relaxed --advice:performance=all --define=_INLINE --define=_FLASH --diag_warning=225 --diag_wrap=off --display_error_number --abi=coffabi -z -m"NMS1_20240826-13L.map" --stack_size=0x200 --warn_sections -i"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/lib" -i"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include" --reread_libs --diag_wrap=off --display_error_number --xml_link_info="NMS1_20240826-13L_linkInfo.xml" --rom_model -o "NMS1_20240826-13L.out" $(ORDERED_OBJS)
 	@echo 'Finished building target: "$@"'
 	@echo ' '
 
 # Other Targets
 clean:
 	-$(RM) $(EXE_OUTPUTS__QUOTED)
-	-$(RM) "DRV830x_SPI.obj" "F2837xS_Adc.obj" "F2837xS_CodeStartBranch.obj" "F2837xS_Dac_setting.obj" "F2837xS_DefaultISR.obj" "F2837xS_GlobalVariableDefs.obj" "F2837xS_Gpio.obj" "F2837xS_PieCtrl.obj" "F2837xS_PieVect.obj" "F2837xS_SysCtrl.obj" "F2837xS_sdfm_drivers.obj" "F2837xS_usDelay.obj" "MonoMtrServo.obj" "can_inv.obj" "config.obj" "drv8301.obj" "drv8305.obj" "inverter_state.obj" "Lib/F2837xS_common/driverlib/can.obj" "Lib/F2837xS_common/driverlib/interrupt.obj" "Lib/F2837xS_common/driverlib/systick.obj" 
-	-$(RM) "DRV830x_SPI.d" "F2837xS_Adc.d" "F2837xS_Dac_setting.d" "F2837xS_DefaultISR.d" "F2837xS_GlobalVariableDefs.d" "F2837xS_Gpio.d" "F2837xS_PieCtrl.d" "F2837xS_PieVect.d" "F2837xS_SysCtrl.d" "F2837xS_sdfm_drivers.d" "MonoMtrServo.d" "can_inv.d" "config.d" "drv8301.d" "drv8305.d" "inverter_state.d" "Lib/F2837xS_common/driverlib/can.d" "Lib/F2837xS_common/driverlib/interrupt.d" "Lib/F2837xS_common/driverlib/systick.d" 
+	-$(RM) "F2837xS_Adc.obj" "F2837xS_CodeStartBranch.obj" "F2837xS_Dac_setting.obj" "F2837xS_DefaultISR.obj" "F2837xS_GlobalVariableDefs.obj" "F2837xS_Gpio.obj" "F2837xS_PieCtrl.obj" "F2837xS_PieVect.obj" "F2837xS_SysCtrl.obj" "F2837xS_sdfm_drivers.obj" "F2837xS_usDelay.obj" "MonoMtrServo.obj" "can_inv.obj" "config.obj" "inverter_state.obj" "Lib\F2837xS_common\driverlib\can.obj" "Lib\F2837xS_common\driverlib\interrupt.obj" "Lib\F2837xS_common\driverlib\systick.obj" 
+	-$(RM) "F2837xS_Adc.d" "F2837xS_Dac_setting.d" "F2837xS_DefaultISR.d" "F2837xS_GlobalVariableDefs.d" "F2837xS_Gpio.d" "F2837xS_PieCtrl.d" "F2837xS_PieVect.d" "F2837xS_SysCtrl.d" "F2837xS_sdfm_drivers.d" "MonoMtrServo.d" "can_inv.d" "config.d" "inverter_state.d" "Lib\F2837xS_common\driverlib\can.d" "Lib\F2837xS_common\driverlib\interrupt.d" "Lib\F2837xS_common\driverlib\systick.d" 
 	-$(RM) "F2837xS_CodeStartBranch.d" "F2837xS_usDelay.d" 
 	-@echo 'Finished clean'
 	-@echo ' '

@@ -22,8 +22,8 @@ interrupt void TIMER1_ISR(void)
 
     // Next two lines for debug only to halt the processor here
     // Remove after inserting ISR Code
-    asm ("      ESTOP0");
-    for(;;);
+//    asm ("      ESTOP0");
+//    for(;;);
 }
 
 // CPU Timer 2 Interrupt
