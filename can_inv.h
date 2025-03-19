@@ -24,8 +24,9 @@ enum MotorLocate{
 void InvInitCan(uint16_t _inverterX);
 void ReceiveCanControl();
 void SendCanStatus(uint16_t status, float32 torque);
-void SendCanTemperature(int16_t rpm, float32 torque_fb, float32 voltage, float32 current);
-void SendCanState(uint16_t invTemp, uint16_t motorTemp);
+void SendCanState(int16_t rpm, float32 torque_fb, float32 voltage, float32 current);
+void SendCanTemperature(uint16_t invTemp, uint16_t motorTemp);
 void SendCanHeartbeat();
+void SendCanHFCurrentLog(uint16_t currentA, uint16_t currentB, uint16_t currentC, uint16_t currentDC);
 
 #endif // CAN_INV_H_

@@ -108,6 +108,7 @@ void GPIO_TogglePin(Uint16 pin);
 
 // State Machine function prototypes
 //------------------------------------
+extern enum state state;
 // Alpha states
 void A0(void); // state A0
 void B0(void); // state B0
@@ -165,7 +166,6 @@ float32 speed_rpm = 0.0;
 int16 speed_cnt = 0;
 
 // Function Prototypes
-__interrupt void canaISR(void);     // Receive interrupt for CAN-A (not used)
 
 // boost select
 _iq boost_gain = 1; // not used
@@ -302,7 +302,7 @@ inline void motorTempSense()
     !! Somehow the Vrefhi(3.30V) for adc is different from the Vcc(3.34) of voltage divider,
     so it's corrected by adjust the max value of adc reading, 4095*3.34/3.3 = 4144.6
     */
-//    motor1.TempMotor = 263.7/(4144.6/(float)TFB_motor - 1) - 264.76;
+    motor1.TempMotor = TFB_motor*0.1966 - 671.41;
     cycleTicks -= CpuTimer0Regs.TIM.all;
     return;
 }
@@ -337,6 +337,11 @@ inline _iq EncoderVaricoder(int sin_pos, int sin_neg, int cos_pos, int cos_neg)
     return Elec_Angle;
 }
 #endif
+
+void LogDump(void){
+    CpuTimer1Regs.TCR.bit.TIE = 0x0;
+
+}
 
 // ****************************************************************************
 // ****************************************************************************
@@ -446,41 +451,36 @@ void GPIO_TogglePin(Uint16 pin)
 //*****************************************************************************
 //*****************************************************************************
 
-
-
-
-
 void main(void){
-
 
     // Initialize System Control:
     // PLL, WatchDog, enable Peripheral Clocks
     // This function derived from the one found in F2837x_SysCtrl.c file
     InitSysCtrl1();
-    InvInitCan(MOTOR_RR); // input which motor is
+    InvInitCan(MOTOR_RL); // input which motor is
     SysTickInit();
     SysTickEnable();
     EnableFlag = FALSE;//0816 reset the enableflag
 
     // Waiting for enable flag set
-    while (EnableFlag == FALSE)
-    {
-//        BackTicker++;
-        ReceiveCanControl();
-        SendCanHeartbeat();
-        get_status();
-//        uint16_t status = get_status();
-//        uint16_t invTemp = (motor1.TempA + motor1.TempB +motor1.TempC)/3;
-//        SendCanStatus(status, torqueCMD);
-//        SendCanTemperature(speed_rpm, motor1.pi_iq.Out, motor1.voltageDC, motor1.currentDC);
-//        SendCanState(invTemp, motor1.TempMotor);
+//    while (EnableFlag == FALSE)
+//    {
+////        BackTicker++;
+//        ReceiveCanControl();
+//        SendCanHeartbeat();
+//        get_status();
+////        uint16_t status = get_status();
+////        uint16_t invTemp = (motor1.TempA + motor1.TempB +motor1.TempC)/3;
+////        SendCanStatus(status, torqueCMD);
+////        SendCanTemperature(speed_rpm, motor1.pi_iq.Out, motor1.voltageDC, motor1.currentDC);
+////        SendCanState(invTemp, motor1.TempMotor);
+////
+////
+////                // State machine entry & exit point
+////                //===========================================================
+//////                (*Alpha_State_Ptr)();
 //
-//
-//                // State machine entry & exit point
-//                //===========================================================
-////                (*Alpha_State_Ptr)();
-
-    }
+//    }
 
     // Clear all interrupts and initialize PIE vector table:
 
@@ -509,9 +509,10 @@ void main(void){
     // Timer period definitions found in device specific PeripheralHeaderIncludes.h
     CpuTimer0Regs.PRD.all = 10000; // A tasks
     CpuTimer1Regs.PRD.all = 200000; // B tasks
-    CpuTimer2Regs.PRD.all = 30000; // C tasks
+    CpuTimer2Regs.PRD.all = 50000; // C tasks
 
     CpuTimer1Regs.TCR.bit.TIE = 0x1; // enable timer 1 interrupt
+    CpuTimer2Regs.TCR.bit.TIE = 0x0;
 
     // Tasks State-machine init
     Alpha_State_Ptr = &A0;
@@ -592,10 +593,10 @@ void main(void){
     // Vw   ADC_A A3 SOC4
 
     // current signals
-    // Idc  ADC_D D0 SOC5
-    // Iu   ADC_D D1 SOC2
-    // Iv   ADC_D D2 SOC3
-    // Iw   ADC_D D3 SOC4
+    // Idc  ADC_D D3 SOC5
+    // Iu   ADC_D D2 SOC2
+    // Iv   ADC_D D1 SOC3
+    // Iw   ADC_D D0 SOC4
 
     // temperature signals
     // Tm   ADC_C 15 SOC6
@@ -638,7 +639,7 @@ void main(void){
 
     // Motor 1: Idc @ D0
     // ********************************
-    AdcdRegs.ADCSOC5CTL.bit.CHSEL = 0;                    // SOC2 will convert pin D0
+    AdcdRegs.ADCSOC5CTL.bit.CHSEL = 3;                    // SOC2 will convert pin D0
     AdcdRegs.ADCSOC5CTL.bit.ACQPS = 30;                   // sample window in SYSCLK cycles
     AdcdRegs.ADCSOC5CTL.bit.TRIGSEL = ADCTRIG5_EPWM1SOCA; // trigger on ePWM1 SOCA
     // Configure the post processing block (PPB) to eliminate subtraction related calculation
@@ -647,7 +648,7 @@ void main(void){
 
     // Motor 1: Iu  @ D1
     // ********************************
-    AdcdRegs.ADCSOC2CTL.bit.CHSEL = 1;                    // SOC0 will convert pin D1
+    AdcdRegs.ADCSOC2CTL.bit.CHSEL = 2;                    // SOC0 will convert pin D1
     AdcdRegs.ADCSOC2CTL.bit.ACQPS = 30;                   // sample window in SYSCLK cycles
     AdcdRegs.ADCSOC2CTL.bit.TRIGSEL = ADCTRIG5_EPWM1SOCA; // trigger on ePWM1 SOCA
     // Configure the post processing block (PPB) to eliminate subtraction related calculation
@@ -656,7 +657,7 @@ void main(void){
 
     // Motor 1: Iv  @ D2
     // ********************************
-    AdcdRegs.ADCSOC3CTL.bit.CHSEL = 2;                    // SOC0 will convert pin D2
+    AdcdRegs.ADCSOC3CTL.bit.CHSEL = 1;                    // SOC0 will convert pin D2
     AdcdRegs.ADCSOC3CTL.bit.ACQPS = 30;                   // sample window in SYSCLK cycles
     AdcdRegs.ADCSOC3CTL.bit.TRIGSEL = ADCTRIG5_EPWM1SOCA; // trigger on ePWM1 SOCA
     // Configure the post processing block (PPB) to eliminate subtraction related calculation
@@ -665,7 +666,7 @@ void main(void){
 
     // Motor 1: Iw  @ D3
     // ********************************
-    AdcdRegs.ADCSOC4CTL.bit.CHSEL = 3;                    // SOC2 will convert pin D3
+    AdcdRegs.ADCSOC4CTL.bit.CHSEL = 0;                    // SOC2 will convert pin D3
     AdcdRegs.ADCSOC4CTL.bit.ACQPS = 30;                   // sample window in SYSCLK cycles
     AdcdRegs.ADCSOC4CTL.bit.TRIGSEL = ADCTRIG5_EPWM1SOCA; // trigger on ePWM1 SOCA
     // Configure the post processing block (PPB) to eliminate subtraction related calculation
@@ -674,7 +675,7 @@ void main(void){
 
     // Motor 1: Temp motor @ 15
     // ********************************
-    AdccRegs.ADCSOC6CTL.bit.ACQPS = 30;                   // sample window in SYSCLK cycles
+    AdccRegs.ADCSOC6CTL.bit.ACQPS = 40;                   // sample window in SYSCLK cycles
     AdccRegs.ADCSOC6CTL.bit.CHSEL = 15;                    // SOC8 will convert pin 15
     AdccRegs.ADCSOC6CTL.bit.TRIGSEL = ADCTRIG5_EPWM1SOCA; // trigger on ePWM1 SOCA
 
@@ -698,25 +699,23 @@ void main(void){
 
     //encoder : sin+ @ B0
     AdcbRegs.ADCSOC1CTL.bit.CHSEL = 0;
-    AdcbRegs.ADCSOC1CTL.bit.ACQPS = 30;
+    AdcbRegs.ADCSOC1CTL.bit.ACQPS = 40;
     AdcbRegs.ADCSOC1CTL.bit.TRIGSEL = ADCTRIG5_EPWM1SOCA;
 
     //encoder : sin- @ B1
     AdcbRegs.ADCSOC2CTL.bit.CHSEL = 1;
-    AdcbRegs.ADCSOC2CTL.bit.ACQPS = 30;
+    AdcbRegs.ADCSOC2CTL.bit.ACQPS = 40;
     AdcbRegs.ADCSOC2CTL.bit.TRIGSEL = ADCTRIG5_EPWM1SOCA;
 
     //encoder : cos+ @ B2
     AdcbRegs.ADCSOC3CTL.bit.CHSEL = 2;
-    AdcbRegs.ADCSOC3CTL.bit.ACQPS = 30;
+    AdcbRegs.ADCSOC3CTL.bit.ACQPS = 40;
     AdcbRegs.ADCSOC3CTL.bit.TRIGSEL = ADCTRIG5_EPWM1SOCA;
 
     //encoder : cos- @ B3
     AdcbRegs.ADCSOC4CTL.bit.CHSEL = 3;
-    AdcbRegs.ADCSOC4CTL.bit.ACQPS = 30;
+    AdcbRegs.ADCSOC4CTL.bit.ACQPS = 40;
     AdcbRegs.ADCSOC4CTL.bit.TRIGSEL = ADCTRIG5_EPWM1SOCA;
-
-
 
 
     // ****************************************************************************
@@ -734,7 +733,8 @@ void main(void){
     PieCtrlRegs.PIEIER1.bit.INTx1 = 1; // Enable ADCA1INT in PIE group 1
 
     IER |= M_INT1; // Enable group 1 interrupts
-    IER |= M_INT13;
+    IER |= M_INT13; // Enable timer 1 interrupts
+    IER |= M_INT14; // Enable timer 2 interrupts
 
     // SETUP DAC-C (DACs A, B and C are already used up)
 
@@ -843,26 +843,6 @@ void main(void){
     //  carefully during open loop tests (i.e pi_id.Umax, pi_iq.Umax and Umins) as
     //  in project manuals. Violation of this procedure yields distorted  current
     // waveforms and unstable closed loop operations which may damage the inverter.
-
-    // ****************************************************
-    // Initialize DATALOG module
-    // ****************************************************
-    /*
-    DLOG_4CH_F_init(&dlog_4ch1);
-    dlog_4ch1.input_ptr1 = &DlogCh1; // data value
-    dlog_4ch1.input_ptr2 = &DlogCh2;
-    dlog_4ch1.input_ptr3 = &DlogCh3;
-    dlog_4ch1.input_ptr4 = &DlogCh4;
-    dlog_4ch1.output_ptr1 = &DBUFF_4CH1[0];
-    dlog_4ch1.output_ptr2 = &DBUFF_4CH2[0];
-    dlog_4ch1.output_ptr3 = &DBUFF_4CH3[0];
-    dlog_4ch1.output_ptr4 = &DBUFF_4CH4[0];
-    dlog_4ch1.size = 200;
-    dlog_4ch1.pre_scalar = 5;
-    dlog_4ch1.trig_value = 0.01;
-    dlog_4ch1.status = 2;
-    */
-
     // ****************************************************************************
     // ****************************************************************************
     // Call DMC Protection function
@@ -897,7 +877,7 @@ void main(void){
                 motor1.offset_shntA = K1 * motor1.offset_shntA + K2 * (IFB_U1)*ADC_PU_SCALE_FACTOR; // Mtr1 : Phase A offset
                 motor1.offset_shntB = K1 * motor1.offset_shntB + K2 * (IFB_V1)*ADC_PU_SCALE_FACTOR; // Mtr1 : Phase B offset
                 motor1.offset_shntC = K1 * motor1.offset_shntC + K2 * (IFB_W1)*ADC_PU_SCALE_FACTOR; // Mtr1 : Phase C offset
-                motor1.offset_shntDC = K1 * motor1.offset_shntDC + K2 * (IFB_DC1)*ADC_PU_SCALE_FACTOR; // Mtr1 : Phase C offset
+                motor1.offset_shntDC = K1 * motor1.offset_shntDC + K2 * (IFB_DC1)*ADC_PU_SCALE_FACTOR; // Mtr1 : DC offset
             }
             EPwm1Regs.ETCLR.bit.SOCA = 1;
             OffsetCalCounter++;
@@ -913,8 +893,6 @@ void main(void){
     AdcdRegs.ADCPPB2OFFREF = motor1.offset_shntB * 4096.0; // set shunt Iv1 offset
     AdcdRegs.ADCPPB3OFFREF = motor1.offset_shntC * 4096.0; // set shunt Iw1 offset
     AdcdRegs.ADCPPB4OFFREF = motor1.offset_shntDC* 4096.0; // set shunt Iw1 offset
-
-
 
     EDIS;
 
@@ -942,13 +920,10 @@ void main(void){
         uint16_t status = get_status();
         uint16_t invTemp = (motor1.TempA + motor1.TempB +motor1.TempC)/3;
         SendCanStatus(status, torqueCMD);
-        SendCanTemperature(speed_rpm, motor1.pi_iq.Out, motor1.voltageDC, motor1.currentDC);
-        SendCanState(invTemp, motor1.TempMotor);
+        SendCanState(speed_rpm, motor1.pi_iq.Out, motor1.voltageDC, motor1.currentDC);
+        SendCanTemperature(invTemp, motor1.TempMotor);
         SendCanHeartbeat();
-        // State machine entry & exit point
-        //===========================================================
-        (*Alpha_State_Ptr)(); // jump to an Alpha state (A0,B0,...)
-                              //===========================================================
+
     }
 } // END MAIN CODE
 
@@ -1312,16 +1287,12 @@ inline void PM_FOC_main(MOTOR_VARS *motor)
     motor->svgen.Ubeta = motor->ipark.Beta;
     SVGENDQ_MACRO(motor->svgen)
 
-
     // ------------------------------------------------------------------------------
     //  Computed Duty and Write to CMPA register
     // ------------------------------------------------------------------------------
     (motor->PwmARegs)->CMPA.bit.CMPA = (INV_PWM_HALF_TBPRD * motor->svgen.Ta) + INV_PWM_HALF_TBPRD;
     (motor->PwmBRegs)->CMPA.bit.CMPA = (INV_PWM_HALF_TBPRD * motor->svgen.Tb) + INV_PWM_HALF_TBPRD;
     (motor->PwmCRegs)->CMPA.bit.CMPA = (INV_PWM_HALF_TBPRD * motor->svgen.Tc) + INV_PWM_HALF_TBPRD;
-
-    // read Hall set#1
-
 
     // ------------------------------------------------------------------------------
     //  Connect inputs of the speed pid module
@@ -1352,14 +1323,6 @@ inline void PM_FOC_main(MOTOR_VARS *motor)
     }
     */
 
-    // ------------------------------------------------------------------------------
-    //  Connect inputs of the DATALOG module
-    // ------------------------------------------------------------------------------
-    //  DlogCh2 = motor->ElecTheta; // motor->currentAs;
-    //  DlogCh1 = motor->rg.Out;
-    //  DlogCh3 = motor->clarke.As; // motor->current.Bs;
-    //  DlogCh4 = motor->clarke.Bs; // motor->current.Cs;
-
     //------------------------------------------------------------------------------
     // Variable display on PWMDAC - available
     //------------------------------------------------------------------------------
@@ -1367,30 +1330,38 @@ inline void PM_FOC_main(MOTOR_VARS *motor)
     PwmDacCh1 = _IQtoQ15(motor1.pi_iq.Fbk*3.0);               // Launchpad pin DAC2
     PwmDacCh3 = _IQtoQ15(motor1.ElecTheta); //start at 1.7v max at 3.3v //motor->clarke.As                // Launchpad pin DAC3
     PwmDacCh2 = _IQtoQ15(0.0); //start at 1.7v max at 3.3v //_IQtoQ15(motor->clarke.As);         // Launchpad pin DAC4 -8 ~ 8
-//    PwmDacCh1 = _IQtoQ15(1.0);
-
     return;
 }
 
 interrupt void LogISR(void){
-    GPIO_WritePin(MOTOR1_Gate_GPIO, TRUE);
-    HFCurrentALog[LogPos] = IFB_A1_PPB; // U phase current
-    HFCurrentBLog[LogPos] = IFB_B1_PPB;
-    HFCurrentCLog[LogPos] = IFB_C1_PPB;
-    HFCurrentDCLog[LogPos] = IFB_DC_PPB;
-    HFSinPLog[LogPos] = AdcbResultRegs.ADCRESULT1; // sin+
-    HFSinNLog[LogPos] = AdcbResultRegs.ADCRESULT2;
-    HFCosPLog[LogPos] = AdcbResultRegs.ADCRESULT3;
-    HFCosNLog[LogPos] = AdcbResultRegs.ADCRESULT4;
-    if(LogPos > 999){
-        LogPos = 0;
+//    GPIO_WritePin(MOTOR1_Gate_GPIO, TRUE);
+    if(state == STATE_ERROR){
+        SendCanHFCurrentLog(HFCurrentALog[LogPos], HFCurrentBLog[LogPos], HFCurrentCLog[LogPos], HFCurrentDCLog[LogPos]);
+        if(LogPos > 999){
+            LogPos = 0;
+        }
+        else{
+            LogPos ++;
+        }
     }
     else{
-        LogPos ++;
+        HFCurrentALog[LogPos] = IFB_A1_PPB; // U phase current
+        HFCurrentBLog[LogPos] = IFB_B1_PPB;
+        HFCurrentCLog[LogPos] = IFB_C1_PPB;
+        HFCurrentDCLog[LogPos] = IFB_DC_PPB;
+        HFSinPLog[LogPos] = AdcbResultRegs.ADCRESULT1; // sin+
+        HFSinNLog[LogPos] = AdcbResultRegs.ADCRESULT2;
+        HFCosPLog[LogPos] = AdcbResultRegs.ADCRESULT3;
+        HFCosNLog[LogPos] = AdcbResultRegs.ADCRESULT4;
+        if(LogPos > 999){
+            LogPos = 0;
+        }
+        else{
+            LogPos ++;
+        }
     }
-    GPIO_WritePin(MOTOR1_Gate_GPIO, FALSE);
+//    GPIO_WritePin(MOTOR1_Gate_GPIO, FALSE);
 }
-
 
 // ****************************************************************************
 // ****************************************************************************
@@ -1418,8 +1389,8 @@ interrupt void MotorControlISR(void)
     }
 
 
-//    GPIO_WritePin(MOTOR1_GATE_EN_GPIO, EnableDRV); //GPIO6
-//    GPIO_WritePin(MOTOR1_Gate_GPIO,EnableDRV); //GPIO7
+    GPIO_WritePin(MOTOR1_GATE_EN_GPIO, EnableDRV); //GPIO6
+    GPIO_WritePin(MOTOR1_Gate_GPIO,EnableDRV); //GPIO7
     // check the EnaDRV feedback
 //unfinish
 //  EnaDRV_FBK = GPIO_ReadPin(7); //GPIO7
@@ -1442,13 +1413,10 @@ interrupt void MotorControlISR(void)
 //      ocp_cnt ++;
 //  }
 
-
-    //    Pdl_tq = (float)PDL_TQ_SEN* ADC_PU_PPB_SCALE_FACTOR;
-
     //    GPIO_TogglePin(TEMP_GPIO, IsrTicker%2);
 
     // ------------------------------------------------------------------------------
-    //  Measure phase currents and obtain position encoder (QEP) feedback
+    //  Measure phase currents, voltage and motor temperature
     // ------------------------------------------------------------------------------
     motorCurrentSense(); //  Measure normalized phase currents (-1,+1)
     motorVoltageSense(); //  Measure normalized phase voltages (-1,+1)
@@ -1485,17 +1453,10 @@ interrupt void MotorControlISR(void)
     {
         speed_cnt ++;
     }
-
-//
-
     // ------------------------------------------------------------------------------
     //    FOC Main functions
-
+    // ------------------------------------------------------------------------------
     PM_FOC_main(&motor1);
-    // ------------------------------------------------------------------------------
-    //    Call the DATALOG update function.
-    // ------------------------------------------------------------------------------
-    //DLOG_4CH_F_FUNC(&dlog_4ch1);
 
     // ------------------------------------------------------------------------------
     //    Call the PWMDAC update macro.
@@ -1511,8 +1472,6 @@ interrupt void MotorControlISR(void)
     // clear ADCINT1 INT and ack PIE INT
     AdcbRegs.ADCINTFLGCLR.bit.ADCINT1 = 1;
     PieCtrlRegs.PIEACK.all = PIEACK_GROUP1;
-
-
 
 } // MainISR Ends Here
 

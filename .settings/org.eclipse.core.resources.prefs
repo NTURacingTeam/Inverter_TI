@@ -104,4 +104,5 @@ encoding/can_inv.h=UTF-8
 encoding/config.c=UTF-8
 encoding/config.h=UTF-8
 encoding/drv8301_defs.h=UTF-8
+encoding/inverter_state.h=UTF-8
 encoding/motorVars.h=UTF-8

@@ -52,7 +52,7 @@ tCANBitClkParms canBitClk = {
     .uSyncPropPhase1Seg = 14,
     .uPhase2Seg = 5,
     .uSJW = 1,
-    .uQuantumPrescaler = 20
+    .uQuantumPrescaler = 10
 };
 
 void InvInitCan(uint16_t _inverterX) {
@@ -69,8 +69,6 @@ void InvInitCan(uint16_t _inverterX) {
 }
 
 
-
-
 extern float32 torqueCMD;
 
 void ReceiveCanControl() {
@@ -82,10 +80,8 @@ void ReceiveCanControl() {
     int16_t torqueCmd = ((uint16_t)rxData[3] << 8) | rxData[2];
     // Implement your control command processing here
     torqueCMD = (float32) torqueCmd / Kt / BASE_CURRENT / 1000;
-    control(8);
+    control(ctrl);
 }
-
-
 
 void SendCanStatus(uint16_t status, float32 torque) {
     static uint32_t last_send;
@@ -111,9 +107,7 @@ void SendCanStatus(uint16_t status, float32 torque) {
     }
 }
 
-
-
-void SendCanTemperature(int16_t rpm, float32 torque_fb, float32 voltage, float32 current) {
+void SendCanState(int16_t rpm, float32 torque_fb, float32 voltage, float32 current) {
     static uint32_t last_send;
     const uint32_t send_period = TICK_PER_MS * 10;
     MIN_PERIOD_CHECK;
@@ -143,9 +137,7 @@ void SendCanTemperature(int16_t rpm, float32 torque_fb, float32 voltage, float32
     }
 }
 
-
-
-void SendCanState(uint16_t invTemp, uint16_t motorTemp) {
+void SendCanTemperature(uint16_t invTemp, uint16_t motorTemp) {
     static uint32_t last_send;
     const uint32_t send_period = TICK_PER_MS * 100;
     MIN_PERIOD_CHECK;
@@ -170,9 +162,6 @@ void SendCanState(uint16_t invTemp, uint16_t motorTemp) {
     }
 }
 
-
-
-
 void SendCanHeartbeat() {
     static uint32_t last_send;
     const uint32_t send_period = TICK_PER_MS * 100;
@@ -188,6 +177,33 @@ void SendCanHeartbeat() {
         canMessage.pucMsgData = txData;
         // Load the message object into the CAN controller
         CANMessageSet(CANA_BASE, 5, &canMessage, MSG_OBJ_TYPE_TX);
+    }
+}
+
+void SendCanHFCurrentLog(uint16_t currentA, uint16_t currentB, uint16_t currentC, uint16_t currentDC) {
+    static uint32_t last_send;
+    const uint32_t send_period = TICK_PER_MS * 100;
+    MIN_PERIOD_CHECK;
+    if(last_send - SysTickValueGet() >= send_period) {
+        last_send = last_can_tx = SysTickValueGet();
+        // Prepare the temperature data
+        txData[1] = (currentA >> 8) & 0xFF;
+        txData[0] = currentA& 0xFF;
+        txData[3] = (currentB >> 8) & 0xFF;
+        txData[2] = currentB & 0xFF;
+        txData[5] = (currentC >> 8) & 0xFF;
+        txData[4] = currentC & 0xFF;
+        txData[7] = (currentDC >> 8) & 0xFF;
+        txData[6] = currentDC & 0xFF;
+
+        // Set up a transmit message object
+        canMessage.ui32MsgID = 0x610 + inverterX; // Temperature ID
+        canMessage.ui32Flags = MSG_OBJ_NO_FLAGS;
+        canMessage.ui32MsgLen = 8;
+        canMessage.pucMsgData = txData;
+
+        // Load the message object into the CAN controller
+        CANMessageSet(CANA_BASE, 3, &canMessage, MSG_OBJ_TYPE_TX);
     }
 }
 
@@ -225,10 +241,6 @@ void CanTestSend() {
     canMessage.pucMsgData = txData;
     CANMessageSet(CANA_BASE, 1, &canMessage, MSG_OBJ_TYPE_TX);
 }
-
-
-
-
 
 
 bool can_it_status = false;
