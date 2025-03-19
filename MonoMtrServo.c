@@ -165,7 +165,6 @@ float32 speed_rpm = 0.0;
 int16 speed_cnt = 0;
 
 // Function Prototypes
-__interrupt void canaISR(void);     // Receive interrupt for CAN-A (not used)
 
 // boost select
 _iq boost_gain = 1; // not used
@@ -446,12 +445,7 @@ void GPIO_TogglePin(Uint16 pin)
 //*****************************************************************************
 //*****************************************************************************
 
-
-
-
-
 void main(void){
-
 
     // Initialize System Control:
     // PLL, WatchDog, enable Peripheral Clocks
@@ -734,7 +728,7 @@ void main(void){
     PieCtrlRegs.PIEIER1.bit.INTx1 = 1; // Enable ADCA1INT in PIE group 1
 
     IER |= M_INT1; // Enable group 1 interrupts
-    IER |= M_INT13;
+    IER |= M_INT13; // Enable timer 1 interrupts
 
     // SETUP DAC-C (DACs A, B and C are already used up)
 
@@ -843,26 +837,6 @@ void main(void){
     //  carefully during open loop tests (i.e pi_id.Umax, pi_iq.Umax and Umins) as
     //  in project manuals. Violation of this procedure yields distorted  current
     // waveforms and unstable closed loop operations which may damage the inverter.
-
-    // ****************************************************
-    // Initialize DATALOG module
-    // ****************************************************
-    /*
-    DLOG_4CH_F_init(&dlog_4ch1);
-    dlog_4ch1.input_ptr1 = &DlogCh1; // data value
-    dlog_4ch1.input_ptr2 = &DlogCh2;
-    dlog_4ch1.input_ptr3 = &DlogCh3;
-    dlog_4ch1.input_ptr4 = &DlogCh4;
-    dlog_4ch1.output_ptr1 = &DBUFF_4CH1[0];
-    dlog_4ch1.output_ptr2 = &DBUFF_4CH2[0];
-    dlog_4ch1.output_ptr3 = &DBUFF_4CH3[0];
-    dlog_4ch1.output_ptr4 = &DBUFF_4CH4[0];
-    dlog_4ch1.size = 200;
-    dlog_4ch1.pre_scalar = 5;
-    dlog_4ch1.trig_value = 0.01;
-    dlog_4ch1.status = 2;
-    */
-
     // ****************************************************************************
     // ****************************************************************************
     // Call DMC Protection function
@@ -897,7 +871,7 @@ void main(void){
                 motor1.offset_shntA = K1 * motor1.offset_shntA + K2 * (IFB_U1)*ADC_PU_SCALE_FACTOR; // Mtr1 : Phase A offset
                 motor1.offset_shntB = K1 * motor1.offset_shntB + K2 * (IFB_V1)*ADC_PU_SCALE_FACTOR; // Mtr1 : Phase B offset
                 motor1.offset_shntC = K1 * motor1.offset_shntC + K2 * (IFB_W1)*ADC_PU_SCALE_FACTOR; // Mtr1 : Phase C offset
-                motor1.offset_shntDC = K1 * motor1.offset_shntDC + K2 * (IFB_DC1)*ADC_PU_SCALE_FACTOR; // Mtr1 : Phase C offset
+                motor1.offset_shntDC = K1 * motor1.offset_shntDC + K2 * (IFB_DC1)*ADC_PU_SCALE_FACTOR; // Mtr1 : DC offset
             }
             EPwm1Regs.ETCLR.bit.SOCA = 1;
             OffsetCalCounter++;
@@ -1312,16 +1286,12 @@ inline void PM_FOC_main(MOTOR_VARS *motor)
     motor->svgen.Ubeta = motor->ipark.Beta;
     SVGENDQ_MACRO(motor->svgen)
 
-
     // ------------------------------------------------------------------------------
     //  Computed Duty and Write to CMPA register
     // ------------------------------------------------------------------------------
     (motor->PwmARegs)->CMPA.bit.CMPA = (INV_PWM_HALF_TBPRD * motor->svgen.Ta) + INV_PWM_HALF_TBPRD;
     (motor->PwmBRegs)->CMPA.bit.CMPA = (INV_PWM_HALF_TBPRD * motor->svgen.Tb) + INV_PWM_HALF_TBPRD;
     (motor->PwmCRegs)->CMPA.bit.CMPA = (INV_PWM_HALF_TBPRD * motor->svgen.Tc) + INV_PWM_HALF_TBPRD;
-
-    // read Hall set#1
-
 
     // ------------------------------------------------------------------------------
     //  Connect inputs of the speed pid module
@@ -1352,14 +1322,6 @@ inline void PM_FOC_main(MOTOR_VARS *motor)
     }
     */
 
-    // ------------------------------------------------------------------------------
-    //  Connect inputs of the DATALOG module
-    // ------------------------------------------------------------------------------
-    //  DlogCh2 = motor->ElecTheta; // motor->currentAs;
-    //  DlogCh1 = motor->rg.Out;
-    //  DlogCh3 = motor->clarke.As; // motor->current.Bs;
-    //  DlogCh4 = motor->clarke.Bs; // motor->current.Cs;
-
     //------------------------------------------------------------------------------
     // Variable display on PWMDAC - available
     //------------------------------------------------------------------------------
@@ -1367,8 +1329,6 @@ inline void PM_FOC_main(MOTOR_VARS *motor)
     PwmDacCh1 = _IQtoQ15(motor1.pi_iq.Fbk*3.0);               // Launchpad pin DAC2
     PwmDacCh3 = _IQtoQ15(motor1.ElecTheta); //start at 1.7v max at 3.3v //motor->clarke.As                // Launchpad pin DAC3
     PwmDacCh2 = _IQtoQ15(0.0); //start at 1.7v max at 3.3v //_IQtoQ15(motor->clarke.As);         // Launchpad pin DAC4 -8 ~ 8
-//    PwmDacCh1 = _IQtoQ15(1.0);
-
     return;
 }
 
@@ -1390,7 +1350,6 @@ interrupt void LogISR(void){
     }
     GPIO_WritePin(MOTOR1_Gate_GPIO, FALSE);
 }
-
 
 // ****************************************************************************
 // ****************************************************************************
@@ -1442,13 +1401,10 @@ interrupt void MotorControlISR(void)
 //      ocp_cnt ++;
 //  }
 
-
-    //    Pdl_tq = (float)PDL_TQ_SEN* ADC_PU_PPB_SCALE_FACTOR;
-
     //    GPIO_TogglePin(TEMP_GPIO, IsrTicker%2);
 
     // ------------------------------------------------------------------------------
-    //  Measure phase currents and obtain position encoder (QEP) feedback
+    //  Measure phase currents, voltage and motor temperature
     // ------------------------------------------------------------------------------
     motorCurrentSense(); //  Measure normalized phase currents (-1,+1)
     motorVoltageSense(); //  Measure normalized phase voltages (-1,+1)
@@ -1485,17 +1441,10 @@ interrupt void MotorControlISR(void)
     {
         speed_cnt ++;
     }
-
-//
-
     // ------------------------------------------------------------------------------
     //    FOC Main functions
-
+    // ------------------------------------------------------------------------------
     PM_FOC_main(&motor1);
-    // ------------------------------------------------------------------------------
-    //    Call the DATALOG update function.
-    // ------------------------------------------------------------------------------
-    //DLOG_4CH_F_FUNC(&dlog_4ch1);
 
     // ------------------------------------------------------------------------------
     //    Call the PWMDAC update macro.
@@ -1511,8 +1460,6 @@ interrupt void MotorControlISR(void)
     // clear ADCINT1 INT and ack PIE INT
     AdcbRegs.ADCINTFLGCLR.bit.ADCINT1 = 1;
     PieCtrlRegs.PIEACK.all = PIEACK_GROUP1;
-
-
 
 } // MainISR Ends Here
 

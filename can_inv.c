@@ -69,8 +69,6 @@ void InvInitCan(uint16_t _inverterX) {
 }
 
 
-
-
 extern float32 torqueCMD;
 
 void ReceiveCanControl() {
@@ -84,8 +82,6 @@ void ReceiveCanControl() {
     torqueCMD = (float32) torqueCmd / Kt / BASE_CURRENT / 1000;
     control(8);
 }
-
-
 
 void SendCanStatus(uint16_t status, float32 torque) {
     static uint32_t last_send;
@@ -110,8 +106,6 @@ void SendCanStatus(uint16_t status, float32 torque) {
         CANMessageSet(CANA_BASE, 2, &canMessage, MSG_OBJ_TYPE_TX);
     }
 }
-
-
 
 void SendCanTemperature(int16_t rpm, float32 torque_fb, float32 voltage, float32 current) {
     static uint32_t last_send;
@@ -143,8 +137,6 @@ void SendCanTemperature(int16_t rpm, float32 torque_fb, float32 voltage, float32
     }
 }
 
-
-
 void SendCanState(uint16_t invTemp, uint16_t motorTemp) {
     static uint32_t last_send;
     const uint32_t send_period = TICK_PER_MS * 100;
@@ -169,9 +161,6 @@ void SendCanState(uint16_t invTemp, uint16_t motorTemp) {
         CANMessageSet(CANA_BASE, 4, &canMessage, MSG_OBJ_TYPE_TX);
     }
 }
-
-
-
 
 void SendCanHeartbeat() {
     static uint32_t last_send;
