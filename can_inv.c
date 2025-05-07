@@ -80,7 +80,7 @@ void ReceiveCanControl() {
     int16_t torqueCmd = ((uint16_t)rxData[3] << 8) | rxData[2];
     // Implement your control command processing here
     torqueCMD = (float32) torqueCmd / Kt / BASE_CURRENT / 1000;
-    control(8);
+    control(ctrl);
 }
 
 void SendCanStatus(uint16_t status, float32 torque) {

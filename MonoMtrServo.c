@@ -55,6 +55,7 @@ Peripheral Assignments:
 #include "inverter_state.h"
 #include "can_inv.h"
 #include "systick.h"
+// #include "./sd/SD.h"
 
 //#include "driverlib.h"
 //#include "device.h"
@@ -910,15 +911,20 @@ void main(void){
     SysTickEnable();
     for (;;) // infinite loop
     {
-        motorTempSense();
+        if (SYSTEM_STATE(RUNNING)) {
+            motorTempSense();
+        }
         ReceiveCanControl();
         /* please finish this */
         uint16_t status = get_status();
         uint16_t invTemp = (motor1.TempA + motor1.TempB +motor1.TempC)/3;
-        SendCanStatus(status, torqueCMD);
-        SendCanTemperature(speed_rpm, motor1.pi_iq.Out, motor1.voltageDC, motor1.currentDC);
-        SendCanState(invTemp, motor1.TempMotor);
-        SendCanHeartbeat();
+        
+        if (!SYSTEM_STATE(ERROR)) {
+            SendCanStatus(status, torqueCMD);
+            SendCanTemperature(speed_rpm, motor1.pi_iq.Out, motor1.voltageDC, motor1.currentDC);
+            SendCanState(invTemp, motor1.TempMotor);
+            SendCanHeartbeat();
+        }
         // State machine entry & exit point
         //===========================================================
         (*Alpha_State_Ptr)(); // jump to an Alpha state (A0,B0,...)

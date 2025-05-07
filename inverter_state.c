@@ -5,54 +5,21 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#ifndef TRUE
-#define FALSE 0
-#define TRUE  1
-#endif
-
-#define BIT(x) (1 << (x)) // 1 followed by x zero in binary
-
-enum state {
-        STATE_INIT,
-        STATE_READY,
-        STATE_RUNNING,
-        STATE_ERROR,
-    };
-
-enum control_bits {
-        CTRL_ENABLE = BIT(3), // 0b1000
-        CTRL_FAULT_RESET = BIT(5), // 0b100000
-        CTRL_DIR = BIT(11), // 0b100000000000
-    };
-
-enum status_bits {
-        STATUS_READY = BIT(1), // 0b10 = 2
-        STATUS_ENABLED = BIT(2), // 0b100 = 4
-        STATUS_FAULT = BIT(3), // 0b1000 = 8
-        STATUS_HV = BIT(4), // 0b10000 = 16
-    };
-
-static enum state state = STATE_INIT;
-
-static uint16_t ctrl_prev = 0;
-
-extern uint16_t EnableFlag;
-//extern uint16_t EnableDRV;
 
 void control(uint16_t ctrl) {
     // enable or disable the inverter from the command received
-    if ((ctrl & CTRL_ENABLE) && (state == STATE_READY)) {
+    if ((ctrl & CTRL_ENABLE) && (SYSTEM_STATE(READY))) {
         enable_inverter();
-        state = STATE_RUNNING;
-    } else if (!(ctrl & CTRL_ENABLE) && (state == STATE_RUNNING)) {
+        SET_SYSTEM_STATE(RUNNING);
+    } else if (!(ctrl & CTRL_ENABLE) && (SYSTEM_STATE(RUNNING))) {
         disable_inverter();
-        state = STATE_READY;
+        SET_SYSTEM_STATE(READY);
     }
 
     // fault reset
-    if ((ctrl_prev & CTRL_FAULT_RESET) && !(ctrl & CTRL_FAULT_RESET) && state == STATE_ERROR) {
+    if ((ctrl_prev & CTRL_FAULT_RESET) && !(ctrl & CTRL_FAULT_RESET) && SYSTEM_STATE(ERROR)) {
         reset_fault();
-        state = STATE_READY;
+        SET_SYSTEM_STATE(READY);
     }
     ctrl_prev = ctrl;
 }
@@ -66,17 +33,17 @@ uint16_t get_status() {
   }
 
   if (there_is_error()) {
-    state = STATE_ERROR;
+    SET_SYSTEM_STATE(ERROR);
     status |= STATUS_FAULT;
 
     return status;
   }
 
-  if(everything_is_ok() && state == STATE_INIT) {
-    state = STATE_READY;
+  if(everything_is_ok() && SYSTEM_STATE(INIT)) {
+    SET_SYSTEM_STATE(STATE_READY);
   }
 
-  switch(state) {
+  switch(_system_state) {
     case STATE_READY:
       status |= STATUS_READY;
       break;
@@ -114,6 +81,7 @@ void reset_fault(void) {
 bool there_is_hv(void) {
     // Code to check if there is high voltage
    // if(motor1.voltageDC >60)
+   SET_SYSTEM_STATE(ERROR);
     return true; // Placeholder
 
 }
