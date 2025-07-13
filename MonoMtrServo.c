@@ -55,6 +55,9 @@ Peripheral Assignments:
 #include "inverter_state.h"
 #include "can_inv.h"
 #include "systick.h"
+#include "ff.h"
+#include "ulibSD.h"
+#include "logger.h"  // logger_t + log_buf definitions
 
 //#include "driverlib.h"
 //#include "device.h"
@@ -62,6 +65,11 @@ Peripheral Assignments:
 // **********************************************************
 // Prototypes for local functions within this file
 // **********************************************************
+FATFS fs;
+FIL MyFile;
+
+const char TestFPath[] = {"Test.txt"};
+const char TextFPath[] = {"Text.bin"};
 
 // INTERRUPT FUNCTIONS
 // ---------------------
@@ -447,6 +455,10 @@ void GPIO_TogglePin(Uint16 pin)
 
 void main(void){
 
+    volatile FRESULT res;                                 /* FatFs function common result code */
+	uint32_t byteswritten, bytesread;                     /* File write/read counts */
+	uint8_t wtext[] = "This is TI F2837xS working with FatFs\n"; /* File write buffer */
+
     // Initialize System Control:
     // PLL, WatchDog, enable Peripheral Clocks
     // This function derived from the one found in F2837x_SysCtrl.c file
@@ -455,6 +467,37 @@ void main(void){
     SysTickInit();
     SysTickEnable();
     EnableFlag = FALSE;//0816 reset the enableflag
+
+    // Init SD files
+    res = f_mount(&FatFs, "", 1);
+    if (res != FR_OK)
+    {
+        Error_Handler();
+    }
+    else
+    {
+        res = f_open(&MyFile, TestFPath, FA_CREATE_ALWAYS | FA_WRITE);
+        if (res != FR_OK)
+        {
+            Error_Handler();
+        }
+        else
+        {
+            f_write(&MyFile, wtext, sizeof(wtext), (void *)&byteswritten);
+            res = f_close(&MyFile);
+            if (res != FR_OK)
+            {
+                Error_Handler();
+            }
+        }
+    }
+
+    res = f_open(&MyFile, TextFPath, FA_CREATE_ALWAYS | FA_WRITE);
+    if (res == FR_OK)
+    {
+        f_close(&MyFile);
+    }
+    f_open(&MyFile, TextFPath, FA_OPEN_APPEND | FA_WRITE);
 
     // Waiting for enable flag set
     while (EnableFlag == FALSE)
@@ -1462,6 +1505,16 @@ interrupt void MotorControlISR(void)
     PieCtrlRegs.PIEACK.all = PIEACK_GROUP1;
 
 } // MainISR Ends Here
+
+/**
+  * @brief  This function is executed in case of error occurrence.
+  * @retval None
+  */
+void Error_Handler(void)
+{
+  /* USER CODE BEGIN Error_Handler_Debug */
+  /* USER CODE END Error_Handler_Debug */
+}
 
 /****************************************************************************
  * End of Code *

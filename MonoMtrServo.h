@@ -39,4 +39,7 @@ Include project specific include files.
 #include "pid_grando.h"         // Include header for the PID_GRANDO_CONTROLLER object
 #include "filter.h"
 #include "fltdet.h"             // Include header for the FLTDET object
+
+/* Exported functions prototypes ---------------------------------------------*/
+void Error_Handler(void);
 #endif /* MONOMTRSERVO_H_ */
