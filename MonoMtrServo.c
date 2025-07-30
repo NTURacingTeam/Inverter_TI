@@ -55,8 +55,8 @@ Peripheral Assignments:
 #include "inverter_state.h"
 #include "can_inv.h"
 #include "systick.h"
-#include "ff.h"
-#include "ulibSD.h"
+#include <./fatfs/fatfs/ff.h>
+#include <./fatfs/sdspi/SDFatFs.h>
 #include "logger.h"  // logger_t + log_buf definitions
 
 //#include "driverlib.h"
@@ -67,6 +67,19 @@ Peripheral Assignments:
 // **********************************************************
 FATFS fs;
 FIL MyFile;
+
+#define DRIVE_NUM 0 // Drive number used for FatFs
+
+// Logging Buffers
+logger_t log_buf[2][7500];
+uint8_t wr_log_buf_num = 0;
+uint16_t wr_log_index = 0;
+uint8_t last_sec = 0;
+uint16_t log_subsec = 0;
+
+volatile FRESULT fresult;                             /* FatFs function common result code */
+uint32_t byteswritten, bytesread;                     /* File write/read counts */
+uint8_t wtext[] = "This is TI F2837xS working with FatFs\n"; /* File write buffer */
 
 const char TestFPath[] = {"Test.txt"};
 const char TextFPath[] = {"Text.bin"};
@@ -455,10 +468,6 @@ void GPIO_TogglePin(Uint16 pin)
 
 void main(void){
 
-    volatile FRESULT res;                                 /* FatFs function common result code */
-	uint32_t byteswritten, bytesread;                     /* File write/read counts */
-	uint8_t wtext[] = "This is TI F2837xS working with FatFs\n"; /* File write buffer */
-
     // Initialize System Control:
     // PLL, WatchDog, enable Peripheral Clocks
     // This function derived from the one found in F2837x_SysCtrl.c file
@@ -469,31 +478,43 @@ void main(void){
     EnableFlag = FALSE;//0816 reset the enableflag
 
     // Init SD files
-    res = f_mount(&FatFs, "", 1);
-    if (res != FR_OK)
+    SDFatFS_init(); // !! TO-DO: GPIO init and SPI init
+
+    // Register and mount SD card
+    SDFatFS_Handle sdFatFs_handle = SDFatFS_open(sdspiHandle, DRIVE_NUM);
+    if (sdFatFs_handle == NULL)
+    {
+        ESTOP0;
+        while(1);
+    }
+
+    /*  TEST START: Create and write to test file  */
+    fresult = f_open(&MyFile, TestFPath, FA_CREATE_ALWAYS | FA_WRITE);
+    if (fresult != FR_OK)
     {
         Error_Handler();
     }
     else
     {
-        res = f_open(&MyFile, TestFPath, FA_CREATE_ALWAYS | FA_WRITE);
-        if (res != FR_OK)
+        fresult = f_open(&MyFile, TestFPath, FA_CREATE_ALWAYS | FA_WRITE);
+        if (fresult != FR_OK)
         {
             Error_Handler();
         }
         else
         {
             f_write(&MyFile, wtext, sizeof(wtext), (void *)&byteswritten);
-            res = f_close(&MyFile);
-            if (res != FR_OK)
+            fresult = f_close(&MyFile);
+            if (fresult != FR_OK)
             {
                 Error_Handler();
             }
         }
     }
+    /*  TEST END: Create and write to test file  */
 
-    res = f_open(&MyFile, TextFPath, FA_CREATE_ALWAYS | FA_WRITE);
-    if (res == FR_OK)
+    fresult = f_open(&MyFile, TextFPath, FA_CREATE_ALWAYS | FA_WRITE);
+    if (fresult == FR_OK)
     {
         f_close(&MyFile);
     }
@@ -1115,6 +1136,15 @@ void B3(void) //  SPARE
 void C1(void)
 //----------------------------------------
 {
+    DINT;
+    uint8_t buf_num_to_sd = wr_log_buf_num;
+    uint16_t index_to_sd = wr_log_index;
+    wr_log_buf_num ^= 0x1;
+    wr_log_index = 0;
+    EINT;
+
+    fresult = f_write(&MyFile, log_buf[buf_num_to_sd], index_to_sd * sizeof(logger_t), (void *)&byteswritten);
+    f_sync(&MyFile);
     //-----------------
     // the next time CpuTimer2 'counter' reaches Period value go to C2
     C_Task_Ptr = &C2;
@@ -1504,7 +1534,63 @@ interrupt void MotorControlISR(void)
     AdcbRegs.ADCINTFLGCLR.bit.ADCINT1 = 1;
     PieCtrlRegs.PIEACK.all = PIEACK_GROUP1;
 
-} // MainISR Ends Here
+} 
+
+uint16_t CRC_Calculate(const void *data, uint16_t length)
+{
+    const uint8_t *bytes = (const uint8_t *)data;
+    uint16_t crc = 0xFFFF;
+
+    for (uint16_t i = 0; i < length; i++) 
+    {
+        crc ^= (uint16_t)bytes[i] << 8;
+        for (uint8_t j = 0; j < 8; j++) 
+        {
+            if (crc & 0x8000)
+            {
+                crc = (crc << 1) ^ 0x1021;
+            }
+            else
+            {
+                crc <<= 1;
+            }
+        }
+    }
+
+    return crc;
+}
+
+
+void log_to_buffer(void)
+{
+    Uint16 index = wr_log_index % 7500;
+
+    if(log_time.Seconds != last_sec)
+    {
+        log_subsec = 0;
+        last_sec = log_time.Seconds;
+    }
+    log_buf[wr_log_buf_num][wr_log_index%7500].LGHR = log_time.Hours;
+    log_buf[wr_log_buf_num][wr_log_index%7500].LGMIN = log_time.Minutes;
+    log_buf[wr_log_buf_num][wr_log_index%7500].LGSEC = log_time.Seconds;
+    log_buf[wr_log_buf_num][wr_log_index%7500].LGSUBSEC = log_subsec;
+    log_buf[wr_log_buf_num][wr_log_index%7500].LGDCV = report_DCV;
+    log_buf[wr_log_buf_num][wr_log_index%7500].LGDCA = report_DCA;
+    log_buf[wr_log_buf_num][wr_log_index%7500].LGIU = IU_100;
+    log_buf[wr_log_buf_num][wr_log_index%7500].LGIV = IV_100;
+    log_buf[wr_log_buf_num][wr_log_index%7500].LGIW = IW_100;
+    log_buf[wr_log_buf_num][wr_log_index%7500].LGTMOS = T_Report;
+    log_buf[wr_log_buf_num][wr_log_index%7500].LGTMOT = T_Mot;
+    log_buf[wr_log_buf_num][wr_log_index%7500].LGSINE = ADC2_arr[0]-ADC2_arr[1];
+    log_buf[wr_log_buf_num][wr_log_index%7500].LGCOS = ADC2_arr[2]-ADC2_arr[3];
+    log_buf[wr_log_buf_num][wr_log_index%7500].LGANG = (uint16_t) roundf(angle_now*100*180/M_PI);
+    log_buf[wr_log_buf_num][wr_log_index%7500].LGTCMD = (int16_t) roundf(percent_torque_requested*10);
+    log_buf[wr_log_buf_num][wr_log_index%7500].LGSTATE = report_status;
+    log_buf[wr_log_buf_num][wr_log_index%7500].LGCRC = CRC_Calculate(&hcrc,&log_buf[wr_log_buf_num][wr_log_index%7500],((sizeof(logger_t)-2)));
+        
+    log_subsec++;
+    wr_log_index++;
+ } // MainISR Ends Here
 
 /**
   * @brief  This function is executed in case of error occurrence.

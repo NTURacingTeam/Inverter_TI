@@ -15,4 +15,5 @@
 	<filesToOpen value="main.c"/>
 	<isTargetManual value="false"/>
 	<origin value="C:/Users/taiji/Downloads/NMS1_final_13L_launch/NMS1_20240826-13L"/>
+	<activeTargetConfiguration value="targetConfigs/TMS320F28377S.ccxml"/>
 </projectOptions>
