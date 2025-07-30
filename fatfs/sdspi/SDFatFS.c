@@ -33,6 +33,10 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include "SDFatFS.h"
+#include <../fatfs/diskio.h>
+#include <../fatfs/ff.h>
+#include "sdspi.h"
 
 /*
  * By default disable both asserts and log for this module.
@@ -44,10 +48,6 @@
 #ifndef DebugP_LOG_ENABLED
 #define DebugP_LOG_ENABLED 0
 #endif
-
-#include "SDFatFS.h"
-#include "../fatfs/diskio.h"
-#include "../fatfs/ff.h"
 
 
 /* SDFatFS Specific Defines */

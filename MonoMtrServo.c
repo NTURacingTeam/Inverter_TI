@@ -56,19 +56,29 @@ Peripheral Assignments:
 #include "can_inv.h"
 #include "systick.h"
 #include <./fatfs/fatfs/ff.h>
-#include <./fatfs/sdspi/SDFatFs.h>
+#include <./fatfs/sdspi/SDFatFS.h>
 #include "logger.h"  // logger_t + log_buf definitions
-
-//#include "driverlib.h"
-//#include "device.h"
 
 // **********************************************************
 // Prototypes for local functions within this file
 // **********************************************************
+// fatfs object
 FATFS fs;
 FIL MyFile;
 
 #define DRIVE_NUM 0 // Drive number used for FatFs
+
+uint16_t SDFatFS_config_count = 1;
+SDFatFS_Object sdfatfsObject;
+
+SDSPI_Object sdspiObject = {
+        .spiHandle = mySDCardSPI_BASE,
+        .spiCsGpioIndex = mySDCardCS
+};
+
+SDFatFS_Object* SDFatFS_config [] = {&sdfatfsObject};
+
+SDSPI_Handle sdspiHandle = &sdspiObject;
 
 // Logging Buffers
 logger_t log_buf[2][7500];

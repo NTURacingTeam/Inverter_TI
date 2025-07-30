@@ -35,9 +35,9 @@
 
 #include <stdint.h>
 
-#include <fatfs/ff.h>
-#include <fatfs/diskio.h>
-#include <sdspi/sdspi.h>
+#include <./fatfs/fatfs/ff.h>
+#include <./fatfs/fatfs/diskio.h>
+#include <./fatfs/sdspi/sdspi.h>
 
 #ifdef __cplusplus
 extern "C" {
